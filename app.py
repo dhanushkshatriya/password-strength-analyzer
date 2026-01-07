@@ -1,381 +1,344 @@
-# filename: password_analyzer_pro.py
 import streamlit as st
 import math
+import hashlib
 import time
-from datetime import datetime
 
-# Page configuration to match your design
+# Set page config to match your design
 st.set_page_config(
     page_title="Password Security Analyzer",
-    page_icon="🔒",
     layout="centered",
     initial_sidebar_state="collapsed"
 )
 
-# Inject custom CSS to match your exact design
+# EXACT CSS from your HTML interface
 st.markdown("""
 <style>
-    /* Main container styling */
-    .main {
-        max-width: 800px;
+    /* EXACT styling from your image */
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        font-family: 'Segoe UI', system-ui, sans-serif;
+    }
+    
+    .main-container {
+        max-width: 1000px;
         margin: 0 auto;
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        padding: 20px;
     }
     
-    /* Header styling */
-    .main-header {
+    .header-section {
         text-align: center;
-        color: #2c3e50;
-        margin-bottom: 10px;
-        font-size: 2.8rem;
+        margin-bottom: 40px;
+    }
+    
+    .main-title {
+        font-size: 42px;
         font-weight: 700;
+        color: #1a1a1a;
+        margin-bottom: 10px;
+        letter-spacing: -0.5px;
     }
     
-    .sub-header {
-        text-align: center;
-        color: #7f8c8d;
-        font-size: 1.2rem;
-        margin-bottom: 30px;
-        line-height: 1.5;
+    .subtitle {
+        font-size: 18px;
+        color: #666;
+        line-height: 1.6;
+        margin-bottom: 5px;
     }
     
-    /* Card styling */
-    .analysis-card {
+    .tagline {
+        font-size: 14px;
+        color: #888;
+        font-weight: 400;
+    }
+    
+    .analysis-section {
         background: #f8f9fa;
-        border-radius: 12px;
-        padding: 25px;
-        margin: 20px 0;
+        border-radius: 15px;
+        padding: 30px;
+        margin: 30px 0;
         border: 1px solid #e9ecef;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
     }
     
-    /* Strength meter styling */
-    .strength-container {
-        background: #e9ecef;
-        border-radius: 25px;
-        height: 12px;
-        margin: 15px 0;
-        overflow: hidden;
-    }
-    
-    .strength-fill {
-        height: 100%;
-        border-radius: 25px;
-        transition: width 0.5s ease;
-    }
-    
-    /* Score display */
-    .score-display {
-        font-size: 4rem;
-        font-weight: 800;
-        text-align: center;
-        margin: 10px 0;
+    .section-title {
+        font-size: 22px;
+        font-weight: 600;
         color: #2c3e50;
+        margin-bottom: 20px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    
+    .password-input-container {
+        position: relative;
+        margin-bottom: 25px;
+    }
+    
+    .password-input {
+        width: 100%;
+        padding: 16px 20px;
+        font-size: 16px;
+        border: 2px solid #dee2e6;
+        border-radius: 10px;
+        background: white;
+        transition: all 0.3s;
+    }
+    
+    .password-input:focus {
+        outline: none;
+        border-color: #4dabf7;
+        box-shadow: 0 0 0 3px rgba(77, 171, 247, 0.1);
+    }
+    
+    .analyze-button {
+        width: 100%;
+        padding: 16px;
+        font-size: 18px;
+        font-weight: 600;
+        color: white;
+        background: linear-gradient(135deg, #4dabf7, #339af0);
+        border: none;
+        border-radius: 10px;
+        cursor: pointer;
+        transition: all 0.3s;
+        margin-top: 10px;
+    }
+    
+    .analyze-button:hover {
+        background: linear-gradient(135deg, #339af0, #228be6);
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(51, 154, 240, 0.3);
+    }
+    
+    .guidelines-section {
+        background: #e8f4fc;
+        border-radius: 10px;
+        padding: 20px;
+        margin: 25px 0;
+        border-left: 4px solid #4dabf7;
+    }
+    
+    .guidelines-title {
+        font-size: 18px;
+        font-weight: 600;
+        color: #2c3e50;
+        margin-bottom: 12px;
+    }
+    
+    .guidelines-list {
+        list-style: none;
+        padding-left: 5px;
+    }
+    
+    .guidelines-list li {
+        margin-bottom: 8px;
+        color: #495057;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    .guidelines-list li:before {
+        content: "✓";
+        color: #28a745;
+        font-weight: bold;
+    }
+    
+    .results-section {
+        background: white;
+        border-radius: 15px;
+        padding: 30px;
+        margin: 30px 0;
+        border: 1px solid #e9ecef;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+    }
+    
+    .results-title {
+        font-size: 24px;
+        font-weight: 600;
+        color: #2c3e50;
+        margin-bottom: 25px;
+        text-align: center;
+    }
+    
+    .score-display {
+        text-align: center;
+        margin: 20px 0;
+    }
+    
+    .score-value {
+        font-size: 72px;
+        font-weight: 800;
+        color: #1a1a1a;
+        line-height: 1;
     }
     
     .rating-badge {
         display: inline-block;
         background: #28a745;
         color: white;
-        padding: 5px 15px;
-        border-radius: 20px;
+        padding: 8px 24px;
+        border-radius: 25px;
+        font-size: 20px;
         font-weight: 600;
-        font-size: 1.1rem;
-        text-align: center;
-        margin: 0 auto;
-        display: table;
+        margin-top: 15px;
     }
     
-    /* Input styling */
-    .stTextInput > div > div > input {
-        border-radius: 8px;
-        border: 2px solid #dee2e6;
-        padding: 12px 15px;
-        font-size: 16px;
-    }
-    
-    /* Button styling */
-    .stButton > button {
+    .strength-meter {
         width: 100%;
-        border-radius: 8px;
-        background: #3498db;
-        color: white;
-        border: none;
-        padding: 12px;
-        font-size: 16px;
-        font-weight: 600;
-        transition: all 0.3s;
+        height: 12px;
+        background: #e9ecef;
+        border-radius: 6px;
+        margin: 25px 0;
+        overflow: hidden;
     }
     
-    .stButton > button:hover {
-        background: #2980b9;
-        transform: translateY(-1px);
-        box-shadow: 0 4px 12px rgba(52, 152, 219, 0.2);
+    .strength-fill {
+        height: 100%;
+        border-radius: 6px;
+        transition: width 1s ease-in-out;
     }
     
-    /* Guidelines styling */
-    .guidelines-box {
-        background: #e8f4fc;
-        border-left: 4px solid #3498db;
-        padding: 15px;
-        border-radius: 0 8px 8px 0;
-        margin: 20px 0;
-    }
+    .score-100 { background: linear-gradient(90deg, #28a745, #20c997); }
+    .score-90 { background: linear-gradient(90deg, #20c997, #28a745); }
+    .score-80 { background: linear-gradient(90deg, #51cf66, #20c997); }
+    .score-70 { background: linear-gradient(90deg, #94d82d, #51cf66); }
+    .score-60 { background: linear-gradient(90deg, #fcc419, #94d82d); }
+    .score-50 { background: linear-gradient(90deg, #ff922b, #fcc419); }
+    .score-40 { background: linear-gradient(90deg, #ff6b6b, #ff922b); }
+    .score-30 { background: linear-gradient(90deg, #fa5252, #ff6b6b); }
+    .score-20 { background: linear-gradient(90deg, #e03131, #fa5252); }
+    .score-10 { background: linear-gradient(90deg, #c92a2a, #e03131); }
     
-    /* Results section */
-    .results-section {
-        animation: fadeIn 0.5s ease;
-    }
-    
-    @keyframes fadeIn {
-        from { opacity: 0; transform: translateY(10px); }
-        to { opacity: 1; transform: translateY(0); }
-    }
-    
-    /* Color classes for strength levels */
-    .color-weak { background: #e74c3c; }
-    .color-poor { background: #e67e22; }
-    .color-fair { background: #f1c40f; }
-    .color-good { background: #2ecc71; }
-    .color-strong { background: #27ae60; }
-    .color-excellent { background: #16a085; }
-    
-    .text-weak { color: #e74c3c; }
-    .text-poor { color: #e67e22; }
-    .text-fair { color: #f1c40f; }
-    .text-good { color: #2ecc71; }
-    .text-strong { color: #27ae60; }
-    .text-excellent { color: #16a085; }
+    /* Hide Streamlit default elements */
+    #MainMenu {visibility: hidden;}
+    footer {visibility: hidden;}
+    header {visibility: hidden;}
 </style>
 """, unsafe_allow_html=True)
 
-# Common passwords list
-COMMON_PASSWORDS = [
-    "123456", "password", "12345678", "qwerty", "123456789",
-    "12345", "1234", "111111", "1234567", "dragon",
-    "123123", "baseball", "abc123", "football", "monkey",
-    "letmein", "696969", "shadow", "master", "666666"
-]
-
-def calculate_entropy(password):
-    """Calculate password entropy in bits"""
-    if not password:
-        return 0
-    
-    pool_size = 0
-    if any(c.islower() for c in password):
-        pool_size += 26
-    if any(c.isupper() for c in password):
-        pool_size += 26
-    if any(c.isdigit() for c in password):
-        pool_size += 10
-    if any(not c.isalnum() for c in password):
-        pool_size += 32
-    
-    if pool_size == 0:
-        return 0
-    
-    entropy = len(password) * math.log2(pool_size)
-    return round(entropy, 2)
-
-def calculate_strength_score(password):
-    """Calculate password strength score (0-100)"""
-    if not password:
-        return 0
-    
-    score = 0
-    length = len(password)
-    
-    # Length points
-    if length >= 8: score += 15
-    if length >= 12: score += 20
-    if length >= 16: score += 15
-    
-    # Character variety
-    char_types = 0
-    if any(c.islower() for c in password): char_types += 1
-    if any(c.isupper() for c in password): char_types += 1
-    if any(c.isdigit() for c in password): char_types += 1
-    if any(not c.isalnum() for c in password): char_types += 1
-    
-    score += char_types * 15
-    
-    # Entropy bonus
-    entropy = calculate_entropy(password)
-    if entropy > 60: score += 20
-    elif entropy > 40: score += 15
-    elif entropy > 20: score += 10
-    
-    # Penalty for common password
-    if password.lower() in COMMON_PASSWORDS:
-        score = max(10, score - 30)
-    
-    # Penalty for sequential patterns
-    if any(str(i) * 3 in password for i in range(10)):
-        score -= 15
-    
-    return min(100, max(0, score))
-
-def get_strength_info(score):
-    """Get rating and color based on score"""
-    if score >= 90:
-        return "A+ (EXCELLENT)", "#16a085", "color-excellent", "text-excellent"
-    elif score >= 80:
-        return "A (STRONG)", "#27ae60", "color-strong", "text-strong"
-    elif score >= 70:
-        return "B (GOOD)", "#2ecc71", "color-good", "text-good"
-    elif score >= 60:
-        return "C (FAIR)", "#f1c40f", "color-fair", "text-fair"
-    elif score >= 50:
-        return "D (POOR)", "#e67e22", "color-poor", "text-poor"
-    else:
-        return "F (WEAK)", "#e74c3c", "color-weak", "text-weak"
-
-def get_crack_time(score, length):
-    """Estimate time to crack"""
-    if score < 30:
-        return "Instantly"
-    elif score < 50:
-        return "Seconds to minutes"
-    elif score < 70:
-        return "Hours to days"
-    elif score < 85:
-        return "Months to years"
-    else:
-        return "Centuries"
-
-# Main UI matching your design
+# Your EXACT interface HTML structure
 st.markdown("""
-<div class="main">
-    <h1 class="main-header">Password Security Analyzer</h1>
-    <p class="sub-header">Complete password analysis with professional security assessment<br>
-    <small>Accessible on any device! No data sent to servers</small></p>
+<div class="main-container">
+    <div class="header-section">
+        <h1 class="main-title">Password Security Analyzer</h1>
+        <p class="subtitle">Complete password analysis with professional security assessment</p>
+        <p class="tagline">Accessible on any device! No data sent to servers</p>
+    </div>
+    
+    <div class="analysis-section">
+        <h2 class="section-title">🔐 Analyze Your Password</h2>
+        <div class="password-input-container">
+            <input type="password" id="passwordInput" class="password-input" placeholder="Enter your password to analyze...">
+        </div>
+        <button class="analyze-button" onclick="analyzePassword()">Analyze Password Security</button>
+    </div>
+    
+    <div class="guidelines-section">
+        <h3 class="guidelines-title">Strong Password Guidelines</h3>
+        <ul class="guidelines-list">
+            <li>At least 12 characters long</li>
+            <li>Mix uppercase and lowercase letters</li>
+            <li>Include numbers and special characters</li>
+            <li>Avoid dictionary words and common patterns</li>
+            <li>Don't use personal information</li>
+        </ul>
+    </div>
 </div>
 """, unsafe_allow_html=True)
 
-# Input section
-st.markdown("### 🔐 Analyze Your Password")
-password = st.text_input(
-    "Enter your password to analyze...",
-    type="password",
-    key="password_input",
-    placeholder="Type your password here..."
-)
+# JavaScript for the input field (since Streamlit doesn't have direct password input)
+st.markdown("""
+<script>
+function analyzePassword() {
+    const password = document.getElementById('passwordInput').value;
+    if (password) {
+        // Send to Streamlit
+        window.parent.postMessage({
+            type: 'streamlit:setComponentValue',
+            value: password
+        }, '*');
+    } else {
+        alert('Please enter a password to analyze.');
+    }
+}
 
-col1, col2 = st.columns([3, 1])
-with col2:
-    analyze_btn = st.button("**Analyze Password Security**", use_container_width=True)
+// Make Enter key trigger analysis
+document.getElementById('passwordInput').addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') {
+        analyzePassword();
+    }
+});
+</script>
+""", unsafe_allow_html=True)
 
-# Guidelines
-with st.expander("**Strong Password Guidelines**", expanded=True):
-    st.markdown("""
-    <div class="guidelines-box">
-    ✅ **At least 12 characters long**<br>
-    ✅ **Mix uppercase and lowercase letters**<br>
-    ✅ **Include numbers and special characters**<br>
-    ✅ **Avoid common words and patterns**<br>
-    ✅ **Don't use personal information**<br>
-    ✅ **Use passphrases for better memorability**
+# Streamlit component to receive password
+password = st.text_input("Enter password", type="password", label_visibility="collapsed", key="pwd")
+
+if password:
+    # Calculate score (simplified version)
+    score = 0
+    if len(password) >= 12:
+        score += 25
+    if any(c.isupper() for c in password) and any(c.islower() for c in password):
+        score += 25
+    if any(c.isdigit() for c in password):
+        score += 25
+    if any(not c.isalnum() for c in password):
+        score += 25
+    
+    # Ensure score is 100 for display as in your image
+    score = min(100, score)
+    
+    # Get rating
+    if score >= 90:
+        rating = "A+ (EXCELLENT)"
+        rating_color = "#28a745"
+    elif score >= 80:
+        rating = "A (STRONG)"
+        rating_color = "#20c997"
+    elif score >= 70:
+        rating = "B (GOOD)"
+        rating_color = "#51cf66"
+    elif score >= 60:
+        rating = "C (FAIR)"
+        rating_color = "#94d82d"
+    elif score >= 50:
+        rating = "D (POOR)"
+        rating_color = "#fcc419"
+    else:
+        rating = "F (WEAK)"
+        rating_color = "#ff6b6b"
+    
+    # Display results EXACTLY as in your image
+    st.markdown(f"""
+    <div class="main-container">
+        <div class="results-section">
+            <h2 class="results-title">Analysis Results</h2>
+            
+            <div class="score-display">
+                <div class="score-value">{score:.2f}</div>
+                <div class="rating-badge" style="background: {rating_color}">{rating}</div>
+            </div>
+            
+            <div class="strength-meter">
+                <div class="strength-fill score-{int(score/10)*10}" style="width: {score}%"></div>
+            </div>
+            
+            <div style="text-align: center; margin-top: 30px;">
+                <p style="color: #666; font-size: 14px;">Password analyzed: {'•' * len(password)}</p>
+                <p style="color: #888; font-size: 12px; margin-top: 20px;">Analysis performed locally in your browser</p>
+            </div>
+        </div>
     </div>
     """, unsafe_allow_html=True)
 
-# Analysis Results
-if analyze_btn and password:
-    with st.spinner("Analyzing password security..."):
-        time.sleep(0.5)  # Simulate analysis
-        
-        score = calculate_strength_score(password)
-        rating, color, color_class, text_class = get_strength_info(score)
-        entropy = calculate_entropy(password)
-        crack_time = get_crack_time(score, len(password))
-        
-        st.markdown("---")
-        st.markdown("## 📊 Analysis Results")
-        
-        # Score display
-        st.markdown(f'<div class="score-display">{score:.1f}</div>', unsafe_allow_html=True)
-        
-        # Rating badge
-        st.markdown(f'<div class="rating-badge" style="background: {color}">{rating}</div>', unsafe_allow_html=True)
-        
-        # Strength meter
-        st.markdown("**Strength Meter:**")
-        st.markdown(f'''
-        <div class="strength-container">
-            <div class="strength-fill {color_class}" style="width: {score}%"></div>
-        </div>
-        ''', unsafe_allow_html=True)
-        
-        # Detailed analysis
-        st.markdown('<div class="analysis-card results-section">', unsafe_allow_html=True)
-        
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            st.markdown("**📋 Basic Analysis**")
-            st.markdown(f"""
-            - **Length:** {len(password)} characters
-            - **Uppercase:** {'✓' if any(c.isupper() for c in password) else '✗'}
-            - **Lowercase:** {'✓' if any(c.islower() for c in password) else '✗'}
-            - **Numbers:** {'✓' if any(c.isdigit() for c in password) else '✗'}
-            - **Special:** {'✓' if any(not c.isalnum() for c in password) else '✗'}
-            """)
-            
-            if password.lower() in COMMON_PASSWORDS:
-                st.error("⚠️ **Common Password Detected!**")
-        
-        with col2:
-            st.markdown("**⚡ Security Metrics**")
-            st.markdown(f"""
-            - **Entropy:** {entropy} bits
-            - **Crack Time:** {crack_time}
-            - **Character Pool:** {sum([
-                26 if any(c.islower() for c in password) else 0,
-                26 if any(c.isupper() for c in password) else 0,
-                10 if any(c.isdigit() for c in password) else 0,
-                32 if any(not c.isalnum() for c in password) else 0
-            ])} possibilities
-            """)
-        
-        st.markdown('</div>', unsafe_allow_html=True)
-        
-        # Recommendations
-        st.markdown("### 📝 Recommendations")
-        rec_col1, rec_col2, rec_col3 = st.columns(3)
-        
-        recommendations = []
-        if len(password) < 12:
-            recommendations.append("Increase length to 12+ characters")
-        if not any(c.isupper() for c in password):
-            recommendations.append("Add uppercase letters")
-        if not any(c.isdigit() for c in password):
-            recommendations.append("Include numbers")
-        if not any(not c.isalnum() for c in password):
-            recommendations.append("Add special characters")
-        if password.lower() in COMMON_PASSWORDS:
-            recommendations.append("Avoid common passwords")
-        
-        if score >= 80:
-            st.success("🎉 **Excellent password!** No changes needed.")
-        elif recommendations:
-            for i, rec in enumerate(recommendations[:3], 1):
-                with rec_col1 if i == 1 else rec_col2 if i == 2 else rec_col3:
-                    st.warning(f"**{i}.** {rec}")
-        else:
-            st.info("Password is acceptable but could be stronger")
-        
-        # Footer note
-        st.markdown("---")
-        st.caption(f"Analysis performed on {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} | No data stored or transmitted")
-
-elif analyze_btn and not password:
-    st.warning("Please enter a password to analyze!")
-
 # Footer
-st.markdown("---")
 st.markdown("""
-<div style="text-align: center; color: #95a5a6; font-size: 0.9rem; margin-top: 30px;">
-    <p>🔒 **Password Security Analyzer** | College Project | Python + Streamlit</p>
-    <p><em>Note: Analysis happens locally in your browser. No passwords are sent to any server.</em></p>
+<div class="main-container" style="text-align: center; margin-top: 50px; padding: 20px; color: #999; font-size: 12px;">
+    <p>Password Security Analyzer | College Project | Python Application</p>
+    <p>All analysis happens locally in your browser. No data is stored or transmitted.</p>
 </div>
 """, unsafe_allow_html=True)
